@@ -9,6 +9,14 @@ Web GUI for youtube-dl (using the [yt-dlp](https://github.com/yt-dlp/yt-dlp) for
 
 ![screenshot1](https://github.com/alexta69/metube/raw/master/screenshot.gif)
 
+## Special Site Support
+
+MeTube now includes special handling for certain sites that may not be fully supported by yt-dlp. Currently, the following sites have special support:
+
+- **tingdao.org**: Special audio processing for tingdao.org URLs
+
+When you enter a URL from a specially supported site, MeTube will first attempt to use the special processing logic. If that fails, it will fall back to the standard yt-dlp processing.
+
 ## Run using Docker
 
 ```bash
@@ -29,51 +37,63 @@ services:
       - /path/to/downloads:/downloads
 ```
 
-## Configuration via environment variables
+## Configuration
 
-Certain values can be set via environment variables, using the `-e` parameter on the docker command line, or the `environment:` section in docker-compose.
+### Environment variables
 
-* __UID__: user under which MeTube will run. Defaults to `1000`.
-* __GID__: group under which MeTube will run. Defaults to `1000`.
-* __UMASK__: umask value used by MeTube. Defaults to `022`.
-* __DEFAULT_THEME__: default theme to use for the ui, can be set to `light`, `dark` or `auto`. Defaults to `auto`.
-* __DOWNLOAD_DIR__: path to where the downloads will be saved. Defaults to `/downloads` in the docker image, and `.` otherwise.
-* __AUDIO_DOWNLOAD_DIR__: path to where audio-only downloads will be saved, if you wish to separate them from the video downloads. Defaults to the value of `DOWNLOAD_DIR`.
-* __DOWNLOAD_DIRS_INDEXABLE__: if `true`, the download dirs (__DOWNLOAD_DIR__ and __AUDIO_DOWNLOAD_DIR__) are indexable on the webserver. Defaults to `false`.
-* __CUSTOM_DIRS__: whether to enable downloading videos into custom directories within the __DOWNLOAD_DIR__ (or __AUDIO_DOWNLOAD_DIR__). When enabled, a drop-down appears next to the Add button to specify the download directory. Defaults to `true`.
-* __CREATE_CUSTOM_DIRS__: whether to support automatically creating directories within the __DOWNLOAD_DIR__ (or __AUDIO_DOWNLOAD_DIR__) if they do not exist. When enabled, the download directory selector becomes supports free-text input, and the specified directory will be created recursively. Defaults to `true`.
-* __CUSTOM_DIRS_EXCLUDE_REGEX__: regular expression to exclude some custom directories from the drop-down. Empty regex disables exclusion. Defaults to `(^|/)[.@].*$`, which means directories starting with `.` or `@`.
-* __STATE_DIR__: path to where the queue persistence files will be saved. Defaults to `/downloads/.metube` in the docker image, and `.` otherwise.
-* __TEMP_DIR__: path where intermediary download files will be saved. Defaults to `/downloads` in the docker image, and `.` otherwise.
-  * Set this to an SSD or RAM filesystem (e.g., `tmpfs`) for better performance
-  * __Note__: Using a RAM filesystem may prevent downloads from being resumed
-* __DELETE_FILE_ON_TRASHCAN__: if `true`, downloaded files are deleted on the server, when they are trashed from the "Completed" section of the UI. Defaults to `false`.
-* __URL_PREFIX__: base path for the web server (for use when hosting behind a reverse proxy). Defaults to `/`.
-* __PUBLIC_HOST_URL__: base URL for the download links shown in the UI for completed files. By default MeTube serves them under its own URL. If your download directory is accessible on another URL and you want the download links to be based there, use this variable to set it.
-* __HTTPS__: use `https` instead of `http`(__CERTFILE__ and __KEYFILE__ required). Defaults to `false`.
-* __CERTFILE__: HTTPS certificate file path.
-* __KEYFILE__: HTTPS key file path.
-* __PUBLIC_HOST_AUDIO_URL__: same as PUBLIC_HOST_URL but for audio downloads.
-* __OUTPUT_TEMPLATE__: the template for the filenames of the downloaded videos, formatted according to [this spec](https://github.com/yt-dlp/yt-dlp/blob/master/README.md#output-template). Defaults to `%(title)s.%(ext)s`.
-* __OUTPUT_TEMPLATE_CHAPTER__: the template for the filenames of the downloaded videos, when split into chapters via postprocessors. Defaults to `%(title)s - %(section_number)s %(section_title)s.%(ext)s`.
-* __OUTPUT_TEMPLATE_PLAYLIST__: the template for the filenames of the downloaded videos, when downloaded as a playlist. Defaults to `%(playlist_title)s/%(title)s.%(ext)s`. When empty then `OUTPUT_TEMPLATE` is used.
-* __DEFAULT_OPTION_PLAYLIST_STRICT_MODE__: if `true`, the "Strict Playlist mode" switch will be enabled by default. In this mode the playlists will be downloaded only if the url strictly points to a playlist. Urls to videos inside a playlist will be treated same as direct video url. Defaults to `false` .
-* __DEFAULT_OPTION_PLAYLIST_ITEM_LIMIT__: Maximum number of playlist items that can be downloaded. Defaults to `0` (no limit).
-* __YTDL_OPTIONS__: Additional options to pass to yt-dlp, in JSON format. [See available options here](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/YoutubeDL.py#L220). They roughly correspond to command-line options, though some do not have exact equivalents here, for example `--recode-video` has to be specified via `postprocessors`. Also note that dashes are replaced with underscores. You may find [this script](https://github.com/yt-dlp/yt-dlp/blob/master/devscripts/cli_to_api.py) helpful for converting from command line options to `YTDL_OPTIONS`.
-* __YTDL_OPTIONS_FILE__: A path to a JSON file that will be loaded and used for populating `YTDL_OPTIONS` above. Please note that if both `YTDL_OPTIONS_FILE` and `YTDL_OPTIONS` are specified, the options in `YTDL_OPTIONS` take precedence.
-* __ROBOTS_TXT__: A path to a `robots.txt` file mounted in the container
-* __DOWNLOAD_MODE__ :This flag controls how downloads are scheduled and executed. Options are `sequential`, `concurrent`, and `limited`.  Defaults to `limited`:
-    *   `sequential`: Downloads are processed one at a time. A new download won’t start until the previous one has finished. This mode is useful for conserving system resources or ensuring downloads occur in a strict order.
-    *   `concurrent`: Downloads are started immediately as they are added, with no built-in limit on how many run simultaneously. This mode may overwhelm your system if too many downloads start at once.
-    *   `limited`: Downloads are started concurrently but are capped by a concurrency limit. In this mode, a semaphore is used so that at most a fixed number of downloads run at any given time.
-*   **MAX\_CONCURRENT\_DOWNLOADS**  This flag is used only when **DOWNLOAD\_MODE** is set to **limited**.  
-    It specifies the maximum number of simultaneous downloads allowed. For example, if set to `5`, then at most five downloads will run concurrently, and any additional downloads will wait until one of the active downloads completes. Defaults to `3`. 
-* __LOGLEVEL__: Log level, can be set to `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` or `NONE`. Defaults to `INFO`. 
-* __ENABLE_ACCESSLOG__: whether to enable access log. Defaults to `false`. 
+A few Docker environment variables are available to customize behavior:
 
-The project's Wiki contains examples of useful configurations contributed by users of MeTube:
-* [YTDL_OPTIONS Cookbook](https://github.com/alexta69/metube/wiki/YTDL_OPTIONS-Cookbook)
-* [OUTPUT_TEMPLATE Cookbook](https://github.com/alexta69/metube/wiki/OUTPUT_TEMPLATE-Cookbook)
+| Variable                        | Purpose                                                                                                                                                                                                                   |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DOWNLOAD_DIR`                  | Directory where videos are downloaded. Defaults to `/downloads` inside Docker, and `metube` subdirectory in the current dir outside of Docker.                                                                            |
+| `AUDIO_DOWNLOAD_DIR`            | Directory where audio is downloaded. Defaults to `DOWNLOAD_DIR` if not set.                                                                                                                                               |
+| `TEMP_DIR`                      | Directory where downloads are processed until completion. Defaults to `DOWNLOAD_DIR` if not set.                                                                                                                          |
+| `CUSTOM_DIRS`                   | Allow users to specify custom download subdirectories using the `--paths` parameter. Defaults to `true`.                                                                                                                   |
+| `CREATE_CUSTOM_DIRS`            | Automatically create custom download subdirectories. Defaults to `true`.                                                                                                                                                  |
+| `DELETE_FILE_ON_TRASHCAN`       | Delete files from disk when clicking the "Delete" button in the UI. Defaults to `false`.                                                                                                                                   |
+| `STATE_DIR`                     | Directory where persistent state is stored. Defaults to `DOWNLOAD_DIR` if not set.                                                                                                                                         |
+| `URL_PREFIX`                    | Path prefix for the UI. Example: set to `/youtube-dl` to serve the UI at `http://localhost:8081/youtube-dl`. Defaults to `/`.                                                                                              |
+| `YTDL_OPTIONS`                  | JSON object with [yt-dlp options](https://github.com/yt-dlp/yt-dlp/blob/master/README.md#usage-and-options) to be passed to all downloads. Example: `'{"proxy":"http://proxy.example.com:3128"}'`                           |
+| `YTDL_OPTIONS_FILE`             | Path to a JSON file with yt-dlp options to be passed to all downloads. Example: `/config/ytdl-options.json`. Overrides `YTDL_OPTIONS` if both are set.                                                                     |
+| `YTDL_PLUGINS_DIR`              | Path to a directory containing [yt-dlp plugins](https://github.com/yt-dlp/yt-dlp#plugins). Example: `/plugins`. Defaults to `/app/yt_dlp_plugins` if directory exists.                                                      |
+| `ROBOTS_TXT`                    | Optional text to write to `robots.txt` served at `http://localhost:8081/robots.txt`.                                                                                                                                       |
+| `OUTPUT_TEMPLATE`               | A [yt-dlp output template](https://github.com/yt-dlp/yt-dlp#output-template) for videos. Defaults to `%(title)s.%(ext)s`.                                                                                                  |
+| `OUTPUT_TEMPLATE_CHAPTER`       | A [yt-dlp output template](https://github.com/yt-dlp/yt-dlp#output-template) for videos with chapters. Defaults to `%(title)s - %(section_number)s %(section_title)s.%(ext)s`.                                              |
+| `OUTPUT_TEMPLATE_PLAYLIST`      | A [yt-dlp output template](https://github.com/yt-dlp/yt-dlp#output-template) for playlists. Defaults to `%(playlist_title)s/%(title)s.%(ext)s`.                                                                            |
+| `DEFAULT_OPTION_PLAYLIST_STRICT_MODE` | Enable playlist strict mode by default. Defaults to `false`.                                                                                                                                                         |
+| `DEFAULT_OPTION_PLAYLIST_ITEM_LIMIT`  | Set default limit for number of items to download from a playlist. Defaults to `0` (no limit).                                                                                                                       |
+| `DEFAULT_THEME`                 | Default theme for the UI. Can be `auto`, `light`, or `dark`. Defaults to `auto`.                                                                                                                                           |
+| `HOST`                          | Host to serve UI on. Used for container networking. Defaults to `0.0.0.0`.                                                                                                                                                 |
+| `PORT`                          | Port to serve UI on. Used for container networking. Defaults to `8081`.                                                                                                                                                    |
+| `HTTPS`                         | Whether to use HTTPS. If `true`, both `CERTFILE` and `KEYFILE` must be set. Defaults to `false`.                                                                                                                           |
+| `CERTFILE`                      | Path to a certificate file for HTTPS. Required if `HTTPS` is `true`.                                                                                                                                                       |
+| `KEYFILE`                       | Path to a key file for HTTPS. Required if `HTTPS` is `true`.                                                                                                                                                               |
+| `BASE_DIR`                      | Base directory for all paths. Defaults to empty string.                                                                                                                                                                    |
+| `DOWNLOAD_MODE`                 | Download mode for videos. Can be `concurrent`, `sequential`, or `limited`. Defaults to `limited`.                                                                                                                          |
+| `MAX_CONCURRENT_DOWNLOADS`      | Maximum number of downloads to run concurrently. Used only if `DOWNLOAD_MODE` is `limited`. Defaults to `3`.                                                                                                               |
+| `LOGLEVEL`                      | Log level for the application. Can be `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`. Defaults to `INFO`.                                                                                                              |
+| `ENABLE_ACCESSLOG`              | Enable access logging. Defaults to `false`.                                                                                                                                                                               |
+
+### yt-dlp Plugins
+
+MeTube supports yt-dlp plugins for extending download capabilities. By default, it includes a plugin for downloading audio from tingdao.org.
+
+To use your own plugins:
+1. Place them in a directory on the host
+2. Mount that directory to the container
+3. Set the `YTDL_PLUGINS_DIR` environment variable to point to that directory
+
+Example:
+```bash
+docker run -d \
+  -p 8081:8081 \
+  -v /path/to/downloads:/downloads \
+  -v /path/to/plugins:/plugins \
+  -e YTDL_PLUGINS_DIR=/plugins \
+  ghcr.io/alexta69/metube
+```
+
+The included tingdao.org plugin can be used by simply entering URLs like `https://www.tingdao.org/dist/#/Media?device=mobile&id=11869` in the download box.
 
 ## Using browser cookies
 

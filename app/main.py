@@ -42,6 +42,7 @@ class Config:
         'DEFAULT_OPTION_PLAYLIST_ITEM_LIMIT' : '0',
         'YTDL_OPTIONS': '{}',
         'YTDL_OPTIONS_FILE': '',
+        'YTDL_PLUGINS_DIR': '',  # 添加yt-dlp插件目录配置
         'ROBOTS_TXT': '',
         'HOST': '0.0.0.0',
         'PORT': '8081',
@@ -78,6 +79,15 @@ class Config:
         if self.YTDL_OPTIONS_FILE and self.YTDL_OPTIONS_FILE.startswith('.'):
             self.YTDL_OPTIONS_FILE = str(Path(self.YTDL_OPTIONS_FILE).resolve())
 
+        # 处理yt-dlp插件目录
+        if self.YTDL_PLUGINS_DIR:
+            if os.path.isabs(self.YTDL_PLUGINS_DIR):
+                self.YTDL_PLUGINS_DIR = os.path.abspath(self.YTDL_PLUGINS_DIR)
+            else:
+                # 如果是相对路径，则相对于项目根目录
+                self.YTDL_PLUGINS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', self.YTDL_PLUGINS_DIR))
+            log.info(f'Using yt-dlp plugins directory: {self.YTDL_PLUGINS_DIR}')
+
         success,_ = self.load_ytdl_options()
         if not success:
             sys.exit(1)
@@ -90,6 +100,13 @@ class Config:
             msg = 'Environment variable YTDL_OPTIONS is invalid'
             log.error(msg)
             return (False, msg)
+
+        # 如果配置了插件目录，则添加到yt-dlp选项中
+        if self.YTDL_PLUGINS_DIR and os.path.exists(self.YTDL_PLUGINS_DIR):
+            if 'plugin_dirs' not in self.YTDL_OPTIONS:
+                self.YTDL_OPTIONS['plugin_dirs'] = []
+            self.YTDL_OPTIONS['plugin_dirs'].append(self.YTDL_PLUGINS_DIR)
+            log.info(f'Added plugin directory to yt-dlp options: {self.YTDL_PLUGINS_DIR}')
 
         if not self.YTDL_OPTIONS_FILE:
             return (True, '')
