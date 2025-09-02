@@ -1,0 +1,7 @@
+name: "Tingdao and Fuyin Plugin"
+description: "A plugin for downloading audio from tingdao.org and videos from fuyin.tv"
+version: "0.2.0"
+yt-dlp-version: "2023.00.00"
+
+entrypoints:
+  extractors: ".plugins:register_extractors"
