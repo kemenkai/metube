@@ -30,10 +30,12 @@
    - 使用 MCP 工具puppeteer或playwright调用浏览器
    - 检查网络请求、控制台报错、DOM 状态
    - 提炼出 Claude Code 可理解的排查路径
+   - 只修改yt_dlp_plugins目录中的代码
 3. 若为后端问题：
    - 分析终端日志、错误堆栈、进程数据
    - 检查 API 响应、数据库交互
    - 生成 Claude Code 友好的排查问题描述
+   - 只修改yt_dlp_plugins目录中的代码
 4. 将优化后的问题重新组织，包含：上下文、复现步骤、错误信息、预期结果。
 5. Claude Code 输出最终结果：
    - 结构化排查思路
